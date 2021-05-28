@@ -1,8 +1,6 @@
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-
-
 /**
  * Выводы:
  * Collections.synchronizedMap() - хорош, когда согласованность данных имеет значение.
@@ -11,6 +9,9 @@ import java.util.Date;
  *  +/- разница, на мой взгляд, не большая. При мальенькой нагрузке, просадка в производительности synchronizedMap
  *  более заметна в рамках данного теста. Так же при полной нагрузке, много тестов, когда synchronizedMap был
  *  незначительно быстрее.
+ * __________________________________________Метрики________________________________________________
+ *  В среднем SynchronizedMap - выполняется за - 1891.0 ms
+ *  А ConcurrentHashMap - выполняется за - 1023.0 ms
  *
  */
 
@@ -22,24 +23,25 @@ public class Main {
     // Конечное время теста
     private static String endTime;
     // Шаг для увелечения числа для вставки
-    private static final int STEP = 79;
+    private static final int STEP = 1;
     // Промежутки для потока (delta[0] - начальный индекс вставки, delta[1] - крайний индекс вставки)
-    private static final int[] delta1 = new int[]{0, 100_000};
-    private static final int[] delta2 = new int[]{100_000, 500_000};
-    private static final int[] delta3 = new int[]{200_000, 1_000_000};
-    private static final int[] delta4 = new int[]{300_000, 150_000};
-    private static final int[] delta5 = new int[]{400_00, 2_000_000};
+    private static final int[] delta1 = new int[]{0, 5_000_000};
+    private static final int[] delta2 = new int[]{0, 5_000_000};
+    private static final int[] delta3 = new int[]{0, 5_000_000};
+    private static final int[] delta4 = new int[]{0, 5_000_000};
+    private static final int[] delta5 = new int[]{0, 5_000_000};
     // Формат вывод времени теста
-    private static SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss.SSS");
+    private static SimpleDateFormat dateFormat = new SimpleDateFormat("SSS");
 
     public static void main(String[] args) {
-        concurrentHashMapTest();
+        simpleHashMapTest();
         try{
             Thread.sleep(1000);
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
         }
-        simpleHashMapTest();
+
+        concurrentHashMapTest();
     }
     /**
      * Тест для concurrentHashMap.
@@ -50,8 +52,9 @@ public class Main {
      */
     private static void concurrentHashMapTest() {
         title = "Test with concurrentHashMap";
-        startTime = dateFormat.format(new Date());
-        System.out.println(title + "\nВремя начала: " + startTime);
+//        startTime = dateFormat.format(new Date());
+//        System.out.println(title + "\nВремя начала: " + startTime);
+        long m = System.currentTimeMillis();
         Thread ct1 = new Thread(null, new ConcMap(delta1[0], delta1[1], STEP));
         Thread ct2 = new Thread(null, new ConcMap(delta2[0], delta2[1], STEP));
         Thread ct3 = new Thread(null, new ConcMap(delta3[0], delta3[1], STEP));
@@ -71,8 +74,8 @@ public class Main {
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
         }
-        endTime = dateFormat.format(new Date());
-        System.out.println("Время конца: " + endTime + "\n");
+//        endTime = dateFormat.format(new Date());
+        System.out.println("Время конца: " + (double) (System.currentTimeMillis() - m) + "\n");
     }
     /**
      * Тест для synchronizedMap.
@@ -83,8 +86,9 @@ public class Main {
      */
     private static void simpleHashMapTest() {
         title = "Test with synchronizedMap";
-        startTime = dateFormat.format(new Date());
-        System.out.println(title + "\nВремя начала: " + startTime);
+//        startTime = dateFormat.format(new Date());
+//        System.out.println(title + "\nВремя начала: " + startTime);
+        long m = System.currentTimeMillis();
         Thread ct1 = new Thread(null, new SimpleMap(delta1[0], delta1[1], STEP));
         Thread ct2 = new Thread(null, new SimpleMap(delta2[0], delta2[1], STEP));
         Thread ct3 = new Thread(null, new SimpleMap(delta3[0], delta3[1], STEP));
@@ -104,8 +108,8 @@ public class Main {
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
         }
-        endTime = dateFormat.format(new Date());
-        System.out.println("Время конца: " + endTime);
+//        endTime = dateFormat.format(new Date());
+        System.out.println("Время конца: " + (double) (System.currentTimeMillis() - m) + "\n");
     }
 
 }

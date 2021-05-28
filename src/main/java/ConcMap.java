@@ -9,8 +9,9 @@ public class ConcMap extends TestMaps implements Runnable{
 
     @Override
     public void run() {
+        long m = System.currentTimeMillis();
         writeMap();
         readMap();
-        Thread.currentThread().interrupt();
+        System.out.println("concВремя конца: " + (double) (System.currentTimeMillis() - m) + "\n");
     }
 }

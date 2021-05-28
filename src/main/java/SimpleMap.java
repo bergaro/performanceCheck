@@ -8,8 +8,9 @@ public class SimpleMap extends TestMaps implements Runnable {
     }
     @Override
     public void run() {
+        long m = System.currentTimeMillis();
         writeMap();
         readMap();
-        Thread.currentThread().interrupt();
+        System.out.println("syncВремя конца: " + (double) (System.currentTimeMillis() - m) + "\n");
     }
 }

@@ -31,7 +31,7 @@ public abstract class TestMaps {
     protected void readMap() {
         int emptyVal;
         for(int value : testMap.keySet()) {
-            emptyVal = testMap.get(value);
+//            emptyVal = testMap.get(value);
         }
     }
 }
