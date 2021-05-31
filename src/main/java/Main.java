@@ -1,115 +1,94 @@
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * Выводы:
  * Collections.synchronizedMap() - хорош, когда согласованность данных имеет значение.
  * ConcurrentHashMap<K,V> - хорош, когда операций записи гораздо больше, чем операций чтения.
  *
- *  +/- разница, на мой взгляд, не большая. При мальенькой нагрузке, просадка в производительности synchronizedMap
- *  более заметна в рамках данного теста. Так же при полной нагрузке, много тестов, когда synchronizedMap был
- *  незначительно быстрее.
+ *  Разница довольно существенная. Ниже предоставлены метрики одного запуска теста.
  * __________________________________________Метрики________________________________________________
- *  В среднем SynchronizedMap - выполняется за - 1891.0 ms
- *  А ConcurrentHashMap - выполняется за - 1023.0 ms
+ *  Начало теста для: java.util.Collections$SynchronizedMap
+ * 200000 записей вставлено/извлечено за 1539 мСек.
+ * 200000 записей вставлено/извлечено за 1433 мСек.
+ * 200000 записей вставлено/извлечено за 1405 мСек.
+ * 200000 записей вставлено/извлечено за 1312 мСек.
+ * 200000 записей вставлено/извлечено за 1299 мСек.
+ * 200000 записей вставлено/извлечено за 1354 мСек.
+ * 200000 записей вставлено/извлечено за 1346 мСек.
+ * 200000 записей вставлено/извлечено за 1286 мСек.
+ * Среднее время работы class java.util.Collections$SynchronizedMap составило 1371 мСек
+ *
+ * Начало теста для: java.util.concurrent.ConcurrentHashMap
+ * 200000 записей вставлено/извлечено за 647 мСек.
+ * 200000 записей вставлено/извлечено за 728 мСек.
+ * 200000 записей вставлено/извлечено за 691 мСек.
+ * 200000 записей вставлено/извлечено за 648 мСек.
+ * 200000 записей вставлено/извлечено за 610 мСек.
+ * 200000 записей вставлено/извлечено за 653 мСек.
+ * 200000 записей вставлено/извлечено за 634 мСек.
+ * 200000 записей вставлено/извлечено за 648 мСек.
+ * Среднее время работы class java.util.concurrent.ConcurrentHashMap составило 657 мСек
  *
  */
 
 public class Main {
-    // Заголовок теста
-    private static String title;
-    // Начальное время теста
-    private static String startTime;
-    // Конечное время теста
-    private static String endTime;
-    // Шаг для увелечения числа для вставки
-    private static final int STEP = 1;
-    // Промежутки для потока (delta[0] - начальный индекс вставки, delta[1] - крайний индекс вставки)
-    private static final int[] delta1 = new int[]{0, 5_000_000};
-    private static final int[] delta2 = new int[]{0, 5_000_000};
-    private static final int[] delta3 = new int[]{0, 5_000_000};
-    private static final int[] delta4 = new int[]{0, 5_000_000};
-    private static final int[] delta5 = new int[]{0, 5_000_000};
-    // Формат вывод времени теста
-    private static SimpleDateFormat dateFormat = new SimpleDateFormat("SSS");
+    // Размерность пула потоков
+    public final static int THREAD_POOL_SIZE = Runtime.getRuntime().availableProcessors();
+    // Кол-во записей для вставки
+    public final static int INPUT_LIMIT = 200_000;
+    // Размерность Map
+    public final static int MAP_SIZE = (int)Math.ceil(INPUT_LIMIT * 1.4);
+    // synchronizedMap с заданной размерностью
+    public static Map<String, Integer> syncMap = Collections.synchronizedMap(new HashMap<>(MAP_SIZE));
+    // ConcurrentHashMap с заданной размерностью
+    public static Map<String, Integer> concurrentHashMap = new ConcurrentHashMap<>(MAP_SIZE);
 
-    public static void main(String[] args) {
-        simpleHashMapTest();
-        try{
-            Thread.sleep(1000);
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-        }
-
-        concurrentHashMapTest();
+    public static void main(String[] args) throws InterruptedException {
+        getTestMap(syncMap);
+        getTestMap(concurrentHashMap);
     }
     /**
-     * Тест для concurrentHashMap.
-     * 1) Создаётся n - потоков с разными промежутками для вставки значений в Map
-     * 2) Ожидает исполненение потоков
-     * 3) Замеряет время от старта потоков, до исполнения крайнего потока.
-     * 4) Выводит результат в консоль
+     * В зависимости от конфигурации процессора n-ое кол-во
+     * раз запускает в пуле потоки. Замеряет время начала, конца работы пула потоков(размерностьПула - n-потоков)
+     * и высчитывает среднее время n-ого числа запусков пула.
+     * @param sthMap мапа для работы
+     * @throws InterruptedException
      */
-    private static void concurrentHashMapTest() {
-        title = "Test with concurrentHashMap";
-//        startTime = dateFormat.format(new Date());
-//        System.out.println(title + "\nВремя начала: " + startTime);
-        long m = System.currentTimeMillis();
-        Thread ct1 = new Thread(null, new ConcMap(delta1[0], delta1[1], STEP));
-        Thread ct2 = new Thread(null, new ConcMap(delta2[0], delta2[1], STEP));
-        Thread ct3 = new Thread(null, new ConcMap(delta3[0], delta3[1], STEP));
-        Thread ct4 = new Thread(null, new ConcMap(delta4[0], delta4[1], STEP));
-        Thread ct5 = new Thread(null, new ConcMap(delta5[0], delta5[1], STEP));
-        ct1.start();
-        ct2.start();
-        ct3.start();
-        ct4.start();
-        ct5.start();
-        try {
-            ct5.join();
-            ct4.join();
-            ct3.join();
-            ct2.join();
-            ct1.join();
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
+    public static void getTestMap(Map<String, Integer> sthMap) throws InterruptedException {
+        System.out.println("Начало теста для: " + sthMap.getClass().getName());
+        long averageTime = 0;
+        for (int i = 0; i < THREAD_POOL_SIZE; i++) {
+            long startTime = System.nanoTime();
+            ExecutorService threadPool = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
+            for (int j = 0; j < THREAD_POOL_SIZE; j++) {
+                threadPool.execute(getScenario(sthMap));
+            }
+            threadPool.shutdown();
+            threadPool.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
+            long entTime = System.nanoTime();
+            long totalTime = (entTime - startTime) / 1_000_000L;
+            averageTime += totalTime;
+            System.out.println(INPUT_LIMIT + " записей вставлено/извлечено за " + totalTime + " мСек.");
         }
-//        endTime = dateFormat.format(new Date());
-        System.out.println("Время конца: " + (double) (System.currentTimeMillis() - m) + "\n");
+        System.out.println("Среднее время работы " + sthMap.getClass() +
+                " составило " + averageTime / THREAD_POOL_SIZE + " мСек\n");
     }
     /**
-     * Тест для synchronizedMap.
-     * 1) Создаётся n - потоков с разными промежутками для вставки значений в Map
-     * 2) Ожидает исполненение потоков
-     * 3) Замеряет время от старта потоков, до исполнения крайнего потока.
-     * 4) Выводит результат в консоль
+     * Задаёт сценарий работы для потока
+     * @param sthMap Мапа для работы
+     * @return Runnable
      */
-    private static void simpleHashMapTest() {
-        title = "Test with synchronizedMap";
-//        startTime = dateFormat.format(new Date());
-//        System.out.println(title + "\nВремя начала: " + startTime);
-        long m = System.currentTimeMillis();
-        Thread ct1 = new Thread(null, new SimpleMap(delta1[0], delta1[1], STEP));
-        Thread ct2 = new Thread(null, new SimpleMap(delta2[0], delta2[1], STEP));
-        Thread ct3 = new Thread(null, new SimpleMap(delta3[0], delta3[1], STEP));
-        Thread ct4 = new Thread(null, new SimpleMap(delta4[0], delta4[1], STEP));
-        Thread ct5 = new Thread(null, new SimpleMap(delta5[0], delta5[1], STEP));
-        ct1.start();
-        ct2.start();
-        ct3.start();
-        ct4.start();
-        ct5.start();
-        try {
-            ct5.join();
-            ct4.join();
-            ct3.join();
-            ct2.join();
-            ct1.join();
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-        }
-//        endTime = dateFormat.format(new Date());
-        System.out.println("Время конца: " + (double) (System.currentTimeMillis() - m) + "\n");
+    public static Runnable getScenario(Map<String, Integer> sthMap) {
+        return () -> {
+            for (int i = 0; i < INPUT_LIMIT; i++) {
+                Integer randomNumber = (int) Math.ceil(Math.random() * INPUT_LIMIT);
+                // Вставка в мапу
+                sthMap.put(String.valueOf(randomNumber), randomNumber);
+                // имитация выборки
+                Integer sthValue = sthMap.get(String.valueOf(randomNumber));
+            }
+        };
     }
-
 }
+
